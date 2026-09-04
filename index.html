@@ -37,7 +37,7 @@
     font-family: var(--serif);
     display:flex;
     justify-content:center;
-    padding: 32px 16px 60px;
+    padding: 24px 12px 40px;
   }
 
   .wrap{
@@ -51,7 +51,7 @@
   }
 
   h1{
-    font-size: 2rem;
+    font-size: clamp(1.5rem, 7vw, 2rem);
     letter-spacing: 0.5px;
     margin: 0 0 6px;
     font-weight: 600;
@@ -86,7 +86,7 @@
 
   .scorebar .value{
     font-family: var(--mono);
-    font-size: 1.35rem;
+    font-size: clamp(1rem, 5vw, 1.35rem);
     color: var(--gold);
     font-weight: 600;
     margin-top: 2px;
@@ -94,7 +94,7 @@
 
   .scorebar .value.zero{ color: var(--parchment-dim); }
   .scorebar .value.max{ color: var(--parchment); }
-  .scorebar .value.small{ font-size: 1.1rem; }
+  .scorebar .value.small{ font-size: clamp(0.85rem, 4vw, 1.1rem); }
 
   .board{
     display:flex;
@@ -106,15 +106,15 @@
   .row{
     display:grid;
     grid-template-columns: repeat(5, 1fr) auto;
-    gap: 6px;
+    gap: clamp(4px, 1.5vw, 6px);
     align-items:center;
   }
 
   .row .multiplier{
     font-family: var(--mono);
-    font-size: 0.62rem;
+    font-size: clamp(0.5rem, 2.2vw, 0.62rem);
     color: var(--parchment-dim);
-    width: 46px;
+    width: clamp(32px, 10vw, 46px);
     text-align:center;
     line-height:1.2;
   }
@@ -132,7 +132,7 @@
     align-items:center;
     justify-content:center;
     font-family: var(--serif);
-    font-size: 1.5rem;
+    font-size: clamp(1.05rem, 6vw, 1.5rem);
     font-weight: 600;
     text-transform:uppercase;
     color: var(--parchment);
@@ -232,24 +232,25 @@
     display:flex;
     flex-direction:column;
     gap: 6px;
-    align-items:center;
+    width: 100%;
   }
-  .krow{ display:flex; gap:5px; }
+  .krow{ display:flex; gap: clamp(3px, 1.2vw, 5px); width: 100%; }
   .key{
+    flex: 1 1 0;
+    min-width: 0;
     background: var(--panel);
     border: 1px solid var(--panel-line);
     color: var(--parchment);
     font-family: var(--serif);
-    font-size: 0.8rem;
-    padding: 10px 0;
-    width: 30px;
+    font-size: clamp(0.68rem, 3.4vw, 0.85rem);
+    padding: 12px 0;
     text-align:center;
     border-radius: 3px;
     cursor:pointer;
     text-transform:uppercase;
     user-select:none;
   }
-  .key.wide{ width: 52px; font-size: 0.65rem; font-family: var(--mono); }
+  .key.wide{ flex: 1.7 1 0; font-size: clamp(0.5rem, 2.4vw, 0.62rem); font-family: var(--mono); }
   .key.correct{ background: var(--correct-soft); border-color: var(--correct); }
   .key.present{ background: var(--present-soft); border-color: var(--present); }
   .key.absent{ background: var(--ink); color: var(--parchment-dim); border-color: var(--panel-line); }
