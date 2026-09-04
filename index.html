@@ -327,6 +327,55 @@
     min-height: 14px;
   }
 
+  .solution-toggle{
+    display: block;
+    width: 100%;
+    background: none;
+    border: none;
+    border-top: 1px solid var(--panel-line);
+    color: var(--parchment-dim);
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    padding: 14px 0 4px;
+    margin-top: 14px;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .solution-toggle:hover{ color: var(--parchment); }
+
+  .solution-panel{
+    display: none;
+    margin-top: 10px;
+    text-align: left;
+  }
+  .solution-panel.show{ display: block; }
+
+  .solution-row{
+    display: grid;
+    grid-template-columns: 3.2em 1fr auto;
+    align-items: baseline;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--panel-line);
+  }
+  .solution-row:last-of-type{ border-bottom: none; }
+  .solution-row .turn{ color: var(--parchment-dim); }
+  .solution-row .word{ color: var(--parchment); letter-spacing: 0.05em; font-weight: 600; }
+  .solution-row .pts{ color: var(--gold); text-align: right; }
+  .solution-row.final .word{ color: var(--correct); }
+
+  .solution-total{
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--gold);
+    text-align: right;
+    padding-top: 8px;
+  }
+
   .keyboard{
     display:flex;
     flex-direction:column;
@@ -431,12 +480,14 @@
         <button class="modal-btn" id="playAgainBtn">Play again</button>
       </div>
       <div class="share-status" id="shareStatus"></div>
+
+      <button class="solution-toggle" id="solutionToggle">View perfect solution</button>
+      <div class="solution-panel" id="solutionPanel"></div>
     </div>
   </div>
 
   <footer>
-    blue = double letter score &nbsp;&middot;&nbsp; orange = letter value, wrong spot &nbsp;&middot;&nbsp; guess 5 = 2&times; word &nbsp;&middot;&nbsp; guess 6 = 3&times; word<br>
-    targets and valid guesses use the original Wordle word lists
+    blue = double letter score &nbsp;&middot;&nbsp; orange = letter value, wrong spot &nbsp;&middot;&nbsp; guess 5 = 2&times; word &nbsp;&middot;&nbsp; guess 6 = 3&times; word
   </footer>
 </div>
 
@@ -457,7 +508,7 @@ const GUESSES_RAW = "aahed aalii aapas aargh aarti abaca abaci aback abacs abaft
 const ANSWER_LIST = ANSWERS_RAW.split(" ");
 const GUESS_SET = new Set(GUESSES_RAW.split(" ").concat(ANSWER_LIST));
 
-let target, guesses, currentGuess, gameOver, potentialScore, maxScore, statusHistory, wonFlag;
+let target, guesses, currentGuess, gameOver, potentialScore, maxScore, statusHistory, wonFlag, perfectSolution;
 
 function wordScore(word, ans){
   // returns total points scoring `word` against answer `ans`, base multiplier (no word multiplier applied)
@@ -471,18 +522,29 @@ function wordScore(word, ans){
   return total;
 }
 
-function computeMaxScore(ans){
+function computeMaxSolution(ans){
   const targetScore = wordScore(ans, ans); // all correct, so = 2*sum(letter values)
-  let scores = [];
+  let scored = [];
   for(const w of GUESS_SET){
     if(w===ans) continue;
-    scores.push(wordScore(w, ans));
+    scored.push({ word: w, score: wordScore(w, ans) });
   }
-  scores.sort((a,b)=>b-a);
-  const top5 = scores.slice(0,5);
-  while(top5.length<5) top5.push(0);
-  const stallSum = top5.reduce((a,b)=>a+b,0) + top5[0]; // top1 doubled
-  return stallSum + targetScore*3;
+  scored.sort((a,b)=> b.score - a.score);
+  const top5 = scored.slice(0,5);
+  while(top5.length<5) top5.push({ word:'-----', score:0 });
+
+  // top5[0] is the single highest scorer — put it in the ×2 slot (turn 5) since
+  // doubling the biggest number beats doubling any smaller one.
+  const turns = [
+    { turn:1, word: top5[1].word, base: top5[1].score, mult:1 },
+    { turn:2, word: top5[2].word, base: top5[2].score, mult:1 },
+    { turn:3, word: top5[3].word, base: top5[3].score, mult:1 },
+    { turn:4, word: top5[4].word, base: top5[4].score, mult:1 },
+    { turn:5, word: top5[0].word, base: top5[0].score, mult:2 },
+    { turn:6, word: ans,          base: targetScore,   mult:3 }
+  ];
+  const max = turns.reduce((sum,t)=> sum + t.base*t.mult, 0);
+  return { max, turns };
 }
 
 function newGame(){
@@ -493,9 +555,13 @@ function newGame(){
   gameOver = false;
   wonFlag = false;
   potentialScore = 0;
-  maxScore = computeMaxScore(target);
+
+  const solution = computeMaxSolution(target);
+  maxScore = solution.max;
+  perfectSolution = solution.turns;
 
   closeModal();
+  hideSolution();
   document.getElementById('shareStatus').textContent = "";
   document.getElementById('message').textContent = "";
   document.getElementById('potential').textContent = "0";
@@ -769,6 +835,53 @@ function closeModal(){
   document.getElementById('modalOverlay').classList.remove('show');
 }
 
+function populateSolution(){
+  const panel = document.getElementById('solutionPanel');
+  panel.innerHTML = "";
+
+  perfectSolution.forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'solution-row' + (t.turn===6 ? ' final' : '');
+
+    const turnEl = document.createElement('div');
+    turnEl.className = 'turn';
+    turnEl.textContent = `#${t.turn}`;
+
+    const wordEl = document.createElement('div');
+    wordEl.className = 'word';
+    wordEl.textContent = t.word.toUpperCase();
+
+    const ptsEl = document.createElement('div');
+    ptsEl.className = 'pts';
+    ptsEl.textContent = t.mult>1 ? `${t.base}\u00d7${t.mult} = ${t.base*t.mult}` : `${t.base}`;
+
+    row.appendChild(turnEl);
+    row.appendChild(wordEl);
+    row.appendChild(ptsEl);
+    panel.appendChild(row);
+  });
+
+  const total = document.createElement('div');
+  total.className = 'solution-total';
+  total.textContent = `Max: ${maxScore} pts`;
+  panel.appendChild(total);
+}
+
+function showSolution(){
+  populateSolution();
+  document.getElementById('solutionPanel').classList.add('show');
+  document.getElementById('solutionToggle').textContent = 'Hide perfect solution';
+}
+function hideSolution(){
+  document.getElementById('solutionPanel').classList.remove('show');
+  document.getElementById('solutionToggle').textContent = 'View perfect solution';
+}
+function toggleSolution(){
+  const panel = document.getElementById('solutionPanel');
+  if(panel.classList.contains('show')) hideSolution();
+  else showSolution();
+}
+
 async function shareScore(){
   const text = buildShareText();
   const statusEl = document.getElementById('shareStatus');
@@ -825,6 +938,7 @@ document.getElementById('modalOverlay').addEventListener('click', (e)=>{
 });
 document.getElementById('shareBtn').addEventListener('click', shareScore);
 document.getElementById('playAgainBtn').addEventListener('click', newGame);
+document.getElementById('solutionToggle').addEventListener('click', toggleSolution);
 
 document.addEventListener('keydown', (e)=>{
   if(e.key==='Escape'){ closeModal(); return; }
