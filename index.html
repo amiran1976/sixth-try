@@ -711,17 +711,39 @@ function submitGuess(){
 }
 
 const TIERS = [
-  { min: 90, emoji: "\ud83c\udfc6", label: "Masterful" },
-  { min: 75, emoji: "\u2b50", label: "Excellent" },
-  { min: 55, emoji: "\ud83d\udc4f", label: "Great" },
-  { min: 35, emoji: "\ud83d\udc4d", label: "Solid" },
-  { min: 15, emoji: "\ud83d\ude42", label: "Modest" },
-  { min: 0,  emoji: "\ud83d\ude05", label: "Minimal" }
+  { min: 90, emoji: "\ud83c\udfc6", headlines: [
+      "Absolute mastery. You barely left a point on the table.",
+      "That's about as good as it gets."
+  ]},
+  { min: 75, emoji: "\u2b50", headlines: [
+      "That's a seriously good run.",
+      "Really nice stall — top-shelf score."
+  ]},
+  { min: 55, emoji: "\ud83d\udc4f", headlines: [
+      "Nice job stalling that one out.",
+      "Solid patience — that paid off."
+  ]},
+  { min: 35, emoji: "\ud83d\udc4d", headlines: [
+      "Decent! You left some points out there though.",
+      "Not bad — a little more patience next time."
+  ]},
+  { min: 15, emoji: "\ud83d\ude42", headlines: [
+      "You got there, but you jumped the gun.",
+      "Cashed in early — could've held out longer."
+  ]},
+  { min: 0, emoji: "\ud83d\ude05", headlines: [
+      "Cutting it close! You barely banked anything.",
+      "You solved it, but just barely scored."
+  ]}
 ];
 
 function getTier(pct){
   for(const t of TIERS){ if(pct>=t.min) return t; }
   return TIERS[TIERS.length-1];
+}
+
+function tierHeadline(tier){
+  return tier.headlines[Math.floor(Math.random()*tier.headlines.length)];
 }
 
 function buildShareGrid(){
@@ -735,8 +757,7 @@ function buildShareText(){
   const guessLabel = wonFlag ? `${guesses.length}/6` : `X/6`;
   const lines = [
     `Sixth Try ${guessLabel} \u2014 ${potentialScore}/${maxScore} pts (${pct}%)`,
-    buildShareGrid(),
-    location.href
+    buildShareGrid()
   ];
   return lines.join('\n');
 }
@@ -784,7 +805,7 @@ function endGame(won){
     const tier = getTier(pct);
     tierEl.textContent = tier.emoji;
     headline.classList.add('win');
-    headline.textContent = `${tier.label}! You got a ${tier.label.toLowerCase()}-tier score.`;
+    headline.textContent = tierHeadline(tier);
     detail.textContent = `${potentialScore} of ${maxScore} possible points (${pct}%) \u2014 ${target.toUpperCase()} in ${guesses.length}/6` +
       (guesses.length<6 ? `. You could've stalled longer for more.` : `. Nailed it on the last try.`);
   } else {
