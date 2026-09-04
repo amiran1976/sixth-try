@@ -110,6 +110,14 @@
   }
   .streak-bar .flame{ color: var(--gold); }
 
+  .header-actions{
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .header-actions .howto-btn{ margin-top: 10px; }
+
   .howto-btn{
     display: inline-flex;
     align-items: center;
@@ -310,7 +318,7 @@
   .board{
     display:flex;
     flex-direction:column;
-    gap: 8px;
+    gap: clamp(2px, 0.8vw, 4px);
     margin-bottom: 20px;
   }
 
@@ -361,10 +369,10 @@
     pointer-events: none;
   }
   .row.dws::before{
-    background: radial-gradient(ellipse at center, rgba(63, 139, 148, 0.38), transparent 70%);
+    background: rgba(63, 139, 148, 0.28);
   }
   .row.tws::before{
-    background: radial-gradient(ellipse at center, rgba(176, 71, 63, 0.38), transparent 70%);
+    background: rgba(176, 71, 63, 0.28);
   }
 
   .tile.pop{ transform: scale(1.06); }
@@ -404,9 +412,9 @@
     grid-column: 1 / -1;
     text-align:right;
     font-family: var(--mono);
-    font-size: 0.65rem;
+    font-size: clamp(0.56rem, 2.2vw, 0.65rem);
     color: var(--parchment-dim);
-    min-height: 14px;
+    min-height: 6px;
     margin-top: -2px;
   }
   .row-score .amt{ color: var(--gold); }
@@ -653,7 +661,10 @@
     <h1>Sixward</h1>
     <div class="sub">score builds every guess &middot; nothing banks until you land it</div>
     <div class="streak-bar" id="streakBar"></div>
-    <button class="howto-btn" id="howtoBtn"><span class="qmark">?</span> How to play</button>
+    <div class="header-actions">
+      <button class="howto-btn" id="howtoBtn"><span class="qmark">?</span> How to play</button>
+      <button class="howto-btn" id="viewResultBtn" style="display:none;">View result</button>
+    </div>
   </header>
 
   <div id="loading" class="loading">loading dictionary&hellip;</div>
@@ -908,6 +919,7 @@ function newGame(){
 
   closeModal();
   hideSolution();
+  document.getElementById('viewResultBtn').style.display = 'none';
   document.getElementById('shareStatus').textContent = "";
   document.getElementById('message').textContent = "";
   document.getElementById('potential').textContent = "0";
@@ -1302,6 +1314,7 @@ function renderStreakBar(stats){
 function endGame(won){
   gameOver = true;
   wonFlag = won;
+  document.getElementById('viewResultBtn').style.display = 'inline-flex';
 
   const tierEl = document.getElementById('modalTier');
   const headline = document.getElementById('modalHeadline');
@@ -1353,6 +1366,7 @@ document.getElementById('howtoGotIt').addEventListener('click', closeHowTo);
 document.getElementById('howtoOverlay').addEventListener('click', (e)=>{
   if(e.target.id === 'howtoOverlay') closeHowTo();
 });
+document.getElementById('viewResultBtn').addEventListener('click', openModal);
 
 document.addEventListener('keydown', (e)=>{
   if(e.key==='Escape'){ closeModal(); closeHowTo(); return; }
