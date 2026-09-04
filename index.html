@@ -23,6 +23,10 @@
     --present-soft: #7A4726;
     --crimson: #B0473F;
     --crimson-soft: #7A342E;
+    --key-idle: #2E3341;
+    --key-idle-border: #4A5063;
+    --key-absent: #14161B;
+    --key-absent-text: #4E4B40;
     --serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
     --mono: "IBM Plex Mono", "Courier New", monospace;
   }
@@ -38,12 +42,45 @@
     display:flex;
     justify-content:center;
     padding: 24px 12px 40px;
+    position: relative;
+  }
+
+  .bg-layer{
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+    background: linear-gradient(180deg, #04060c 0%, #080c18 50%, #0b1120 100%);
+  }
+
+  .star{
+    position: absolute;
+    border-radius: 50%;
+    will-change: transform, opacity;
+  }
+
+  @keyframes twinkle{
+    0%, 100%{ opacity: var(--base-op); }
+    50%{ opacity: calc(var(--base-op) * 0.2); }
+  }
+
+  @keyframes starDrift{
+    from{ transform: translate(0,0); }
+    to{ transform: translate(var(--dx), var(--dy)); }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .star{ animation: none !important; }
   }
 
   .wrap{
+    position: relative;
+    z-index: 1;
     width:100%;
     max-width: 480px;
   }
+
 
   header{
     text-align:center;
@@ -192,41 +229,103 @@
     margin-bottom: 10px;
   }
 
-  .result{
-    text-align:center;
-    padding: 16px;
-    border: 1px solid var(--panel-line);
-    border-radius: 4px;
+  .modal-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(10,11,14,0.72);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 50;
+  }
+  .modal-overlay.show{ display: flex; }
+
+  .modal-card{
+    position: relative;
+    width: 100%;
+    max-width: 360px;
     background: var(--panel);
-    margin-bottom: 18px;
-    display:none;
+    border: 1px solid var(--panel-line);
+    border-radius: 6px;
+    padding: 24px 20px 20px;
+    text-align: center;
+    animation: modalIn 0.18s ease;
   }
-  .result.show{ display:block; }
-  .result .headline{
+  @keyframes modalIn{
+    from{ opacity: 0; transform: translateY(8px) scale(0.98); }
+    to{ opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .modal-close{
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: var(--parchment-dim);
     font-size: 1.3rem;
-    margin-bottom: 6px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px;
   }
-  .result.win .headline{ color: var(--gold); }
-  .result.lose .headline{ color: var(--crimson); }
-  .result .detail{
+  .modal-close:hover{ color: var(--parchment); }
+
+  .modal-tier{
+    font-size: 2rem;
+    margin-bottom: 4px;
+  }
+
+  .modal-headline{
+    font-size: 1.25rem;
+    margin-bottom: 8px;
+  }
+  .modal-headline.win{ color: var(--gold); }
+  .modal-headline.lose{ color: var(--crimson); }
+
+  .modal-detail{
     font-family: var(--mono);
     font-size: 0.72rem;
     color: var(--parchment-dim);
     line-height: 1.6;
+    margin-bottom: 16px;
   }
-  .result button{
-    margin-top: 12px;
+
+  .modal-grid{
+    font-size: 1.1rem;
+    line-height: 1.5;
+    margin-bottom: 16px;
+    letter-spacing: 2px;
+  }
+
+  .modal-actions{
+    display: flex;
+    gap: 8px;
+  }
+
+  .modal-btn{
+    flex: 1;
     background: transparent;
     border: 1px solid var(--parchment-dim);
     color: var(--parchment);
     font-family: var(--mono);
     font-size: 0.72rem;
-    padding: 8px 16px;
+    padding: 10px 12px;
     border-radius: 3px;
-    cursor:pointer;
+    cursor: pointer;
     letter-spacing: 0.05em;
   }
-  .result button:hover{ border-color: var(--gold); color: var(--gold); }
+  .modal-btn:hover{ border-color: var(--gold); color: var(--gold); }
+  .modal-btn.primary{ background: var(--gold-soft); border-color: var(--gold); color: var(--parchment); }
+  .modal-btn.primary:hover{ background: var(--gold); }
+
+  .share-status{
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--parchment-dim);
+    margin-top: 10px;
+    min-height: 14px;
+  }
 
   .keyboard{
     display:flex;
@@ -236,10 +335,11 @@
   }
   .krow{ display:flex; gap: clamp(3px, 1.2vw, 5px); width: 100%; }
   .key{
+    position: relative;
     flex: 1 1 0;
     min-width: 0;
-    background: var(--panel);
-    border: 1px solid var(--panel-line);
+    background: var(--key-idle);
+    border: 1px solid var(--key-idle-border);
     color: var(--parchment);
     font-family: var(--serif);
     font-size: clamp(0.68rem, 3.4vw, 0.85rem);
@@ -250,10 +350,22 @@
     text-transform:uppercase;
     user-select:none;
   }
+  .key-letter{ pointer-events: none; }
+  .key-val{
+    position: absolute;
+    bottom: 2px;
+    right: 3px;
+    font-family: var(--mono);
+    font-size: clamp(0.4rem, 1.8vw, 0.5rem);
+    font-weight: 400;
+    opacity: 0.6;
+    pointer-events: none;
+  }
+  .key.wide .key-val{ display: none; }
   .key.wide{ flex: 1.7 1 0; font-size: clamp(0.5rem, 2.4vw, 0.62rem); font-family: var(--mono); }
   .key.correct{ background: var(--correct-soft); border-color: var(--correct); }
   .key.present{ background: var(--present-soft); border-color: var(--present); }
-  .key.absent{ background: var(--ink); color: var(--parchment-dim); border-color: var(--panel-line); }
+  .key.absent{ background: var(--key-absent); color: var(--key-absent-text); border-color: var(--key-absent); opacity: 0.7; }
   .key:active{ transform: scale(0.95); }
 
   footer{
@@ -275,6 +387,7 @@
 </style>
 </head>
 <body>
+<div class="bg-layer" id="bgLayer"></div>
 <div class="wrap">
   <header>
     <h1>Sixth Try</h1>
@@ -303,13 +416,22 @@
 
     <div class="message" id="message"></div>
 
-    <div class="result" id="result">
-      <div class="headline" id="resultHeadline"></div>
-      <div class="detail" id="resultDetail"></div>
-      <button onclick="newGame()">Play again</button>
-    </div>
-
     <div class="keyboard" id="keyboard"></div>
+  </div>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-card" id="modalCard">
+      <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+      <div class="modal-tier" id="modalTier"></div>
+      <div class="modal-headline" id="modalHeadline"></div>
+      <div class="modal-detail" id="modalDetail"></div>
+      <div class="modal-grid" id="modalGrid"></div>
+      <div class="modal-actions">
+        <button class="modal-btn primary" id="shareBtn">Share score</button>
+        <button class="modal-btn" id="playAgainBtn">Play again</button>
+      </div>
+      <div class="share-status" id="shareStatus"></div>
+    </div>
   </div>
 
   <footer>
@@ -335,7 +457,7 @@ const GUESSES_RAW = "aahed aalii aapas aargh aarti abaca abaci aback abacs abaft
 const ANSWER_LIST = ANSWERS_RAW.split(" ");
 const GUESS_SET = new Set(GUESSES_RAW.split(" ").concat(ANSWER_LIST));
 
-let target, guesses, currentGuess, gameOver, potentialScore, maxScore;
+let target, guesses, currentGuess, gameOver, potentialScore, maxScore, statusHistory, wonFlag;
 
 function wordScore(word, ans){
   // returns total points scoring `word` against answer `ans`, base multiplier (no word multiplier applied)
@@ -366,12 +488,15 @@ function computeMaxScore(ans){
 function newGame(){
   target = ANSWER_LIST[Math.floor(Math.random()*ANSWER_LIST.length)];
   guesses = [];
+  statusHistory = [];
   currentGuess = "";
   gameOver = false;
+  wonFlag = false;
   potentialScore = 0;
   maxScore = computeMaxScore(target);
 
-  document.getElementById('result').classList.remove('show','win','lose');
+  closeModal();
+  document.getElementById('shareStatus').textContent = "";
   document.getElementById('message').textContent = "";
   document.getElementById('potential').textContent = "0";
   document.getElementById('potential').classList.add('zero');
@@ -426,7 +551,14 @@ function buildKeyboard(){
       const key = document.createElement('div');
       key.className = 'key';
       key.id = 'key-'+l;
-      key.textContent = l;
+      const letterEl = document.createElement('span');
+      letterEl.className = 'key-letter';
+      letterEl.textContent = l;
+      const valEl = document.createElement('span');
+      valEl.className = 'key-val';
+      valEl.textContent = LETTER_VALUES[l] || '';
+      key.appendChild(letterEl);
+      key.appendChild(valEl);
       key.onclick = ()=>typeLetter(l);
       krow.appendChild(key);
     });
@@ -558,6 +690,7 @@ function submitGuess(){
 
   potentialScore += rowScore;
   guesses.push(currentGuess);
+  statusHistory.push(statuses);
 
   const won = lower === target;
   const outOfGuesses = guesses.length>=6;
@@ -575,30 +708,152 @@ function submitGuess(){
   }
 }
 
-function endGame(won){
-  gameOver = true;
-  const result = document.getElementById('result');
-  result.classList.add('show', won ? 'win':'lose');
-  const headline = document.getElementById('resultHeadline');
-  const detail = document.getElementById('resultDetail');
-  if(won){
-    const pct = maxScore>0 ? Math.round((potentialScore/maxScore)*100) : 0;
-    headline.textContent = `Solved in ${guesses.length} \u2014 ${potentialScore} points`;
-    detail.textContent = `${pct}% of the ${maxScore}-point max for ${target.toUpperCase()}` +
-      (guesses.length<6 ? " \u2014 you could've stalled for more" : " \u2014 nailed it on the last try");
-  } else {
-    headline.textContent = `Out of guesses \u2014 0 points`;
-    detail.textContent = `The word was ${target.toUpperCase()}. Potential was ${potentialScore} of a possible ${maxScore}, but it never banks unless you land it.`;
+const TIERS = [
+  { min: 90, emoji: "\ud83c\udfc6", label: "Masterful" },
+  { min: 75, emoji: "\u2b50", label: "Excellent" },
+  { min: 55, emoji: "\ud83d\udc4f", label: "Great" },
+  { min: 35, emoji: "\ud83d\udc4d", label: "Solid" },
+  { min: 15, emoji: "\ud83d\ude42", label: "Modest" },
+  { min: 0,  emoji: "\ud83d\ude05", label: "Minimal" }
+];
+
+function getTier(pct){
+  for(const t of TIERS){ if(pct>=t.min) return t; }
+  return TIERS[TIERS.length-1];
+}
+
+function buildShareGrid(){
+  return statusHistory.map(statuses =>
+    statuses.map(s => s==='correct' ? '\ud83d\udfe6' : s==='present' ? '\ud83d\udfe7' : '\u2b1b').join('')
+  ).join('\n');
+}
+
+function buildShareText(){
+  const pct = maxScore>0 ? Math.round((potentialScore/maxScore)*100) : 0;
+  const guessLabel = wonFlag ? `${guesses.length}/6` : `X/6`;
+  const lines = [
+    `Sixth Try ${guessLabel} \u2014 ${potentialScore}/${maxScore} pts (${pct}%)`,
+    buildShareGrid(),
+    location.href
+  ];
+  return lines.join('\n');
+}
+
+function openModal(){
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+
+async function shareScore(){
+  const text = buildShareText();
+  const statusEl = document.getElementById('shareStatus');
+  if(navigator.share){
+    try{
+      await navigator.share({ text });
+    }catch(e){
+      // user cancelled the share sheet — no error needed
+    }
+    return;
+  }
+  try{
+    await navigator.clipboard.writeText(text);
+    statusEl.textContent = "Copied to clipboard \u2014 paste it into a text!";
+  }catch(e){
+    statusEl.textContent = "Couldn't copy automatically \u2014 select the text manually.";
   }
 }
 
+function endGame(won){
+  gameOver = true;
+  wonFlag = won;
+
+  const tierEl = document.getElementById('modalTier');
+  const headline = document.getElementById('modalHeadline');
+  const detail = document.getElementById('modalDetail');
+  const grid = document.getElementById('modalGrid');
+
+  headline.classList.remove('win','lose');
+  grid.textContent = buildShareGrid();
+
+  if(won){
+    const pct = maxScore>0 ? Math.round((potentialScore/maxScore)*100) : 0;
+    const tier = getTier(pct);
+    tierEl.textContent = tier.emoji;
+    headline.classList.add('win');
+    headline.textContent = `${tier.label}! You got a ${tier.label.toLowerCase()}-tier score.`;
+    detail.textContent = `${potentialScore} of ${maxScore} possible points (${pct}%) \u2014 ${target.toUpperCase()} in ${guesses.length}/6` +
+      (guesses.length<6 ? `. You could've stalled longer for more.` : `. Nailed it on the last try.`);
+  } else {
+    tierEl.textContent = "\ud83d\ude22";
+    headline.classList.add('lose');
+    headline.textContent = `Out of guesses \u2014 0 points`;
+    detail.textContent = `The word was ${target.toUpperCase()}. Potential was ${potentialScore} of a possible ${maxScore}, but it never banks unless you land it.`;
+  }
+
+  document.getElementById('shareStatus').textContent = "";
+  openModal();
+}
+
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalOverlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'modalOverlay') closeModal();
+});
+document.getElementById('shareBtn').addEventListener('click', shareScore);
+document.getElementById('playAgainBtn').addEventListener('click', newGame);
+
 document.addEventListener('keydown', (e)=>{
+  if(e.key==='Escape'){ closeModal(); return; }
   if(gameOver) return;
   if(e.key==='Enter') submitGuess();
   else if(e.key==='Backspace') deleteLetter();
   else if(/^[a-zA-Z]$/.test(e.key)) typeLetter(e.key.toUpperCase());
 });
 
+function initBackground(){
+  const layer = document.getElementById('bgLayer');
+  const starCount = 70;
+
+  for(let i=0;i<starCount;i++){
+    const star = document.createElement('div');
+    star.className = 'star';
+
+    const isBright = Math.random() < 0.15;
+    const size = isBright ? (1.8 + Math.random()*1.4) : (0.8 + Math.random()*1.2);
+    const top = Math.random()*100;
+    const left = Math.random()*100;
+    const baseOp = isBright ? (0.6 + Math.random()*0.35) : (0.3 + Math.random()*0.4);
+
+    const twinkleDur = 2 + Math.random()*3.5;
+    const twinkleDelay = -Math.random()*twinkleDur;
+
+    const driftDur = 45 + Math.random()*70;
+    const driftDelay = -Math.random()*driftDur;
+    const dx = (Math.random()*50 - 25) + 'px';
+    const dy = (Math.random()*50 - 25) + 'px';
+
+    const tintRoll = Math.random();
+    const tint = tintRoll < 0.12 ? '#CBDBFF' : (tintRoll < 0.2 ? '#FFE7C9' : '#F3F6FF');
+
+    star.style.width = size+'px';
+    star.style.height = size+'px';
+    star.style.top = top+'%';
+    star.style.left = left+'%';
+    star.style.background = tint;
+    star.style.setProperty('--base-op', baseOp);
+    star.style.opacity = baseOp;
+    star.style.setProperty('--dx', dx);
+    star.style.setProperty('--dy', dy);
+    star.style.animation =
+      `twinkle ${twinkleDur}s ease-in-out ${twinkleDelay}s infinite, ` +
+      `starDrift ${driftDur}s ease-in-out ${driftDelay}s infinite alternate`;
+
+    layer.appendChild(star);
+  }
+}
+
+initBackground();
 document.getElementById('loading').style.display = 'none';
 document.getElementById('game').style.display = 'block';
 newGame();
