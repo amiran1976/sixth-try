@@ -357,22 +357,11 @@
     transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s ease;
   }
 
-  .row.dws, .row.tws{
-    position: relative;
+  .row.dws{
+    box-shadow: 0 0 18px 8px rgba(63, 139, 148, 0.32);
   }
-  .row.dws::before, .row.tws::before{
-    content: "";
-    position: absolute;
-    inset: -10px -10px;
-    z-index: -1;
-    filter: blur(22px);
-    pointer-events: none;
-  }
-  .row.dws::before{
-    background: rgba(63, 139, 148, 0.28);
-  }
-  .row.tws::before{
-    background: rgba(176, 71, 63, 0.28);
+  .row.tws{
+    box-shadow: 0 0 18px 8px rgba(176, 71, 63, 0.32);
   }
 
   .tile.pop{ transform: scale(1.06); }
