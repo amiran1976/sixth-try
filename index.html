@@ -35,13 +35,13 @@
 
   body{
     margin:0;
-    min-height:100vh;
+    min-height:100dvh;
     background: var(--ink);
     color: var(--parchment);
     font-family: var(--serif);
     display:flex;
     justify-content:center;
-    padding: 24px 12px 40px;
+    padding: 16px 12px 12px;
     position: relative;
   }
 
@@ -79,6 +79,8 @@
     z-index: 1;
     width:100%;
     max-width: 480px;
+    display: flex;
+    flex-direction: column;
   }
 
 
@@ -315,19 +317,30 @@
   .scorebar .value.max{ color: var(--parchment); }
   .scorebar .value.small{ font-size: clamp(0.85rem, 4vw, 1.1rem); }
 
+  #game{
+    display: flex;
+    flex-direction: column;
+  }
+
   .board{
     display:flex;
     flex-direction:column;
     gap: clamp(2px, 0.8vw, 4px);
-    margin-bottom: 20px;
+    margin-bottom: 70px;
   }
 
   .row{
+    position: relative;
     display:grid;
     grid-template-columns: repeat(5, 1fr);
     gap: clamp(4px, 1.5vw, 6px);
     align-items:center;
+    transition: opacity 0.4s ease;
   }
+  .row.dist-1{ opacity: 0.75; }
+  .row.dist-2{ opacity: 0.5; }
+  .row.dist-3{ opacity: 0.32; }
+  .row.dist-4{ opacity: 0.2; }
 
   .mult-label{
     font-family: var(--mono);
@@ -354,8 +367,13 @@
     font-weight: 600;
     text-transform:uppercase;
     color: var(--parchment);
-    transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s ease;
+    transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s ease, aspect-ratio 0.4s ease;
   }
+
+  .row.dist-1 .tile{ aspect-ratio: 1.3; }
+  .row.dist-2 .tile{ aspect-ratio: 1.7; }
+  .row.dist-3 .tile{ aspect-ratio: 2.1; }
+  .row.dist-4 .tile{ aspect-ratio: 2.5; }
 
   .row.dws{
     box-shadow: 0 0 18px 8px rgba(63, 139, 148, 0.32);
@@ -370,6 +388,54 @@
     0%,100%{ transform: translateX(0); }
     25%{ transform: translateX(-5px); }
     75%{ transform: translateX(5px); }
+  }
+
+  .tile.flipping{
+    animation: tileFlip 0.58s cubic-bezier(0.45, 0, 0.2, 1);
+  }
+  @keyframes tileFlip{
+    0%{ transform: perspective(500px) rotateX(0deg); }
+    50%{ transform: perspective(500px) rotateX(90deg); }
+    100%{ transform: perspective(500px) rotateX(0deg); }
+  }
+  .tile.landed.correct{
+    animation: tileLand 0.35s ease;
+  }
+  @keyframes tileLand{
+    0%{ transform: scale(1); }
+    40%{ transform: scale(1.14); }
+    100%{ transform: scale(1); }
+  }
+
+  .score-pop{
+    position: absolute;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: clamp(1rem, 5vw, 1.5rem);
+    color: var(--gold);
+    text-shadow: 0 2px 5px rgba(0,0,0,0.7);
+    pointer-events: none;
+    z-index: 5;
+    animation: scorePop 1.4s ease-out forwards;
+    white-space: nowrap;
+  }
+  .score-pop.correct{ color: var(--correct); }
+  .score-pop.present{ color: var(--present); }
+  @keyframes scorePop{
+    0%{ opacity: 0; transform: translate(-50%,-50%) translateY(0) scale(0.6); }
+    15%{ opacity: 1; transform: translate(-50%,-50%) translateY(-8px) scale(1.35); }
+    30%{ opacity: 1; transform: translate(-50%,-50%) translateY(-16px) scale(1.15); }
+    65%{ opacity: 1; transform: translate(-50%,-50%) translateY(-32px) scale(1.1); }
+    100%{ opacity: 0; transform: translate(-50%,-50%) translateY(-52px) scale(1); }
+  }
+
+  .row-score.flash{
+    animation: rowScoreFlash 0.6s ease;
+  }
+  @keyframes rowScoreFlash{
+    0%{ transform: scale(1); }
+    35%{ transform: scale(1.18); color: var(--parchment); }
+    100%{ transform: scale(1); }
   }
 
   .tile .pts{
@@ -414,7 +480,7 @@
     font-family: var(--mono);
     font-size: 0.78rem;
     color: var(--crimson);
-    margin-bottom: 10px;
+    margin-bottom: 4px;
   }
 
   .modal-overlay{
@@ -854,7 +920,7 @@ const GUESSES_RAW = "aahed aalii aargh aarti abaca abaci aback abacs abaft abaka
 const ANSWER_LIST = ANSWERS_RAW.split(" ");
 const GUESS_SET = new Set(GUESSES_RAW.split(" ").concat(ANSWER_LIST));
 
-let target, guesses, currentGuess, gameOver, potentialScore, maxScore, statusHistory, wonFlag, perfectSolution;
+let target, guesses, currentGuess, gameOver, potentialScore, maxScore, statusHistory, wonFlag, perfectSolution, revealing;
 
 function wordScore(word, ans){
   // returns total points scoring `word` against answer `ans`, base multiplier (no word multiplier applied)
@@ -899,6 +965,7 @@ function newGame(){
   statusHistory = [];
   currentGuess = "";
   gameOver = false;
+  revealing = false;
   wonFlag = false;
   potentialScore = 0;
 
@@ -917,6 +984,25 @@ function newGame(){
   document.getElementById('guessNum').textContent = "1 / 6";
   buildBoard();
   buildKeyboard();
+  updateRowFocus();
+}
+
+function updateRowFocus(){
+  const active = guesses.length;
+  const tierOpacity = [1, 0.75, 0.5, 0.32, 0.2];
+  for(let i=0;i<6;i++){
+    const rowEl = document.getElementById('row-'+i);
+    if(!rowEl) continue;
+    rowEl.classList.remove('dist-1','dist-2','dist-3','dist-4');
+    const distance = i - active;
+    if(distance >= 1){
+      rowEl.classList.add('dist-' + Math.min(distance, 4));
+    }
+  }
+  const dwsLabel = document.querySelector('.mult-label.dws');
+  const twsLabel = document.querySelector('.mult-label.tws');
+  if(dwsLabel) dwsLabel.style.opacity = tierOpacity[Math.min(Math.max(4-active,0),4)];
+  if(twsLabel) twsLabel.style.opacity = tierOpacity[Math.min(Math.max(5-active,0),4)];
 }
 
 function buildBoard(){
@@ -988,13 +1074,13 @@ function buildKeyboard(){
 }
 
 function typeLetter(l){
-  if(gameOver || currentGuess.length>=5) return;
+  if(gameOver || revealing || currentGuess.length>=5) return;
   currentGuess += l;
   renderCurrentGuess();
 }
 
 function deleteLetter(){
-  if(gameOver) return;
+  if(gameOver || revealing) return;
   currentGuess = currentGuess.slice(0,-1);
   renderCurrentGuess();
 }
@@ -1046,8 +1132,21 @@ function evaluateGuess(guess, ans){
   return result;
 }
 
+function animateCountUp(el, from, to, duration){
+  if(from === to){ el.textContent = to; return; }
+  const start = performance.now();
+  function step(now){
+    const t = Math.min(1, (now-start)/duration);
+    const eased = 1 - Math.pow(1-t, 3);
+    el.textContent = Math.round(from + (to-from)*eased);
+    if(t<1) requestAnimationFrame(step);
+    else el.textContent = to;
+  }
+  requestAnimationFrame(step);
+}
+
 function submitGuess(){
-  if(gameOver) return;
+  if(gameOver || revealing) return;
   if(currentGuess.length!==5){
     setMessage("needs 5 letters");
     shakeRow(guesses.length);
@@ -1067,61 +1166,107 @@ function submitGuess(){
   setMessage("");
 
   const r = guesses.length;
-  const statuses = evaluateGuess(currentGuess, target);
+  const guessWord = currentGuess;
+  const statuses = evaluateGuess(guessWord, target);
 
+  const tilePts = [];
   let rowScore = 0;
   for(let c=0;c<5;c++){
-    const letter = currentGuess[c];
-    const val = LETTER_VALUES[letter] || 0;
+    const val = LETTER_VALUES[guessWord[c]] || 0;
     const status = statuses[c];
-    let pts = 0;
-    if(status==='correct') pts = val*2;
-    else if(status==='present') pts = val;
+    const pts = status==='correct' ? val*2 : (status==='present' ? val : 0);
+    tilePts.push(pts);
     rowScore += pts;
-
-    const tile = document.getElementById(`tile-${r}-${c}`);
-    tile.classList.add(status, 'pop');
-    setTimeout(()=>tile.classList.remove('pop'), 150);
-    const ptsEl = document.createElement('div');
-    ptsEl.className = 'pts';
-    if(status==='correct') ptsEl.textContent = `${val}\u00d72`;
-    else if(status==='present') ptsEl.textContent = val;
-    else ptsEl.textContent = "";
-    tile.appendChild(ptsEl);
-
-    const key = document.getElementById('key-'+letter);
-    if(key){
-      if(status==='correct') key.className='key correct';
-      else if(status==='present' && !key.classList.contains('correct')) key.className='key present';
-      else if(status==='absent' && !key.classList.contains('correct') && !key.classList.contains('present')) key.className='key absent';
-    }
   }
 
   let multLabel = "";
-  if(r===4){ rowScore *= 2; multLabel = " (2\u00d7 word)"; }
-  if(r===5){ rowScore *= 3; multLabel = " (3\u00d7 word)"; }
-
-  document.getElementById('rowscore-'+r).innerHTML =
-    rowScore>0 ? `+<span class="amt">${rowScore}</span>${multLabel}` : `&mdash;`;
-
-  potentialScore += rowScore;
-  guesses.push(currentGuess);
-  statusHistory.push(statuses);
+  let multiplied = rowScore;
+  if(r===4){ multiplied = rowScore*2; multLabel = " (2\u00d7 word)"; }
+  if(r===5){ multiplied = rowScore*3; multLabel = " (3\u00d7 word)"; }
 
   const won = lower === target;
+  guesses.push(guessWord);
+  statusHistory.push(statuses);
   const outOfGuesses = guesses.length>=6;
-
-  document.getElementById('potential').textContent = potentialScore;
-  document.getElementById('potential').classList.toggle('zero', potentialScore===0);
-  document.getElementById('guessNum').textContent = `${Math.min(guesses.length+1,6)} / 6`;
+  const oldPotential = potentialScore;
+  const newPotential = potentialScore + multiplied;
 
   currentGuess = "";
+  revealing = true;
 
-  if(won){
-    endGame(true);
-  } else if(outOfGuesses){
-    endGame(false);
+  const STAGGER = 260;
+  const FLIP_HALF = 290;
+  const FLIP_TOTAL = 580;
+
+  for(let c=0;c<5;c++){
+    const delay = c*STAGGER;
+    const tile = document.getElementById(`tile-${r}-${c}`);
+    const letter = guessWord[c];
+    const status = statuses[c];
+    const pts = tilePts[c];
+
+    setTimeout(()=>{ tile.classList.add('flipping'); }, delay);
+
+    setTimeout(()=>{
+      tile.classList.add(status);
+
+      const ptsEl = document.createElement('div');
+      ptsEl.className = 'pts';
+      if(status==='correct') ptsEl.textContent = `${LETTER_VALUES[letter]||0}\u00d72`;
+      else if(status==='present') ptsEl.textContent = LETTER_VALUES[letter]||0;
+      tile.appendChild(ptsEl);
+
+      if(pts>0){
+        const pop = document.createElement('div');
+        pop.className = 'score-pop' + (status==='correct' ? ' correct' : (status==='present' ? ' present' : ''));
+        pop.textContent = '+'+pts;
+        const rowEl = tile.parentElement;
+        const tileRect = tile.getBoundingClientRect();
+        const rowRect = rowEl.getBoundingClientRect();
+        pop.style.left = (tileRect.left - rowRect.left + tileRect.width/2) + 'px';
+        pop.style.top = (tileRect.top - rowRect.top + tileRect.height/2) + 'px';
+        rowEl.appendChild(pop);
+        setTimeout(()=>pop.remove(), 1400);
+      }
+
+      if(status==='correct'){
+        tile.classList.add('landed');
+        setTimeout(()=>tile.classList.remove('landed'), 400);
+      }
+
+      const key = document.getElementById('key-'+letter);
+      if(key){
+        if(status==='correct') key.className='key correct';
+        else if(status==='present' && !key.classList.contains('correct')) key.className='key present';
+        else if(status==='absent' && !key.classList.contains('correct') && !key.classList.contains('present')) key.className='key absent';
+      }
+    }, delay + FLIP_HALF);
+
+    setTimeout(()=>{ tile.classList.remove('flipping'); }, delay + FLIP_TOTAL);
   }
+
+  const totalRevealTime = (4*STAGGER) + FLIP_TOTAL;
+
+  setTimeout(()=>{
+    const rowScoreEl = document.getElementById('rowscore-'+r);
+    rowScoreEl.innerHTML = multiplied>0 ? `+<span class="amt">${multiplied}</span>${multLabel}` : `&mdash;`;
+    if(multLabel) rowScoreEl.classList.add('flash');
+
+    const potentialEl = document.getElementById('potential');
+    animateCountUp(potentialEl, oldPotential, newPotential, 500);
+    potentialScore = newPotential;
+    potentialEl.classList.toggle('zero', potentialScore===0);
+    document.getElementById('guessNum').textContent = `${Math.min(guesses.length+1,6)} / 6`;
+    updateRowFocus();
+
+    revealing = false;
+
+    if(won){
+      endGame(true);
+    } else if(outOfGuesses){
+      endGame(false);
+    }
+  }, totalRevealTime + 80);
 }
 
 const TIERS = [
@@ -1411,7 +1556,7 @@ function initBackground(){
 initBackground();
 renderStreakBar(loadStats());
 document.getElementById('loading').style.display = 'none';
-document.getElementById('game').style.display = 'block';
+document.getElementById('game').style.display = 'flex';
 newGame();
 </script>
 </body>
