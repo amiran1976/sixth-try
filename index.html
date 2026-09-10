@@ -362,9 +362,16 @@
 
   .wrow.shake{ animation: wrowShake 0.35s; }
   @keyframes wrowShake{
-    0%,100%{ transform: translateZ(260px) translateX(0); }
-    25%{ transform: translateZ(260px) translateX(-6px); }
-    75%{ transform: translateZ(260px) translateX(6px); }
+    0%,100%{ transform: translateX(0); }
+    25%{ transform: translateX(-3px); }
+    75%{ transform: translateX(3px); }
+  }
+
+  .wrow.win-pop{ animation: winPop 0.5s ease; }
+  @keyframes winPop{
+    0%{ transform: scale(1); }
+    40%{ transform: scale(1.18); }
+    100%{ transform: scale(1); }
   }
 
   .message{
@@ -447,9 +454,10 @@
 
   .modal-grid{
     font-size: 1.1rem;
-    line-height: 1.5;
+    line-height: 1.25;
     margin-bottom: 16px;
     letter-spacing: 2px;
+    white-space: pre-line;
   }
 
   .modal-actions{
@@ -805,7 +813,7 @@
       and <a href="https://github.com/hermitdave/FrequencyWords" target="_blank" rel="noopener">FrequencyWords</a> by hermitdave (CC BY-SA 4.0).
       Not affiliated with or endorsed by The New York Times Company or Wordle.
     </span>
-    <div class="build-stamp">build 24</div>
+    <div class="build-stamp">build 39 (reverted to pre-clipping-chase state)</div>
   </footer>
 </div>
 
@@ -881,6 +889,15 @@ function realGuessFor(domIndex, activeInt){
   return real;
 }
 
+let hasSpunIntro = false;
+
+function spinIntro(){
+  const laps = 3;
+  const finalPos = laps * WHEEL_ROWS;
+  revealing = true;
+  animateTo(0, finalPos, 2200, () => { layoutAt(0); revealing = false; });
+}
+
 function newGame(){
   target = ANSWER_LIST[Math.floor(Math.random()*ANSWER_LIST.length)];
   guesses = [];
@@ -906,9 +923,14 @@ function newGame(){
   document.getElementById('guessNum').textContent = "1 / 6";
   buildRows();
   buildKeyboard();
-  layoutAt(0);
   updateMultIndicator();
   renderTiles(0);
+  if(!hasSpunIntro){
+    hasSpunIntro = true;
+    spinIntro();
+  } else {
+    layoutAt(0);
+  }
 }
 
 function buildRows(){
@@ -1019,6 +1041,17 @@ function shakeActiveRow(){
       const row = document.getElementById('wrow-'+i);
       row.classList.add('shake');
       setTimeout(()=>row.classList.remove('shake'), 350);
+      break;
+    }
+  }
+}
+
+function popActiveRow(activeIdx){
+  for(let i=0;i<WHEEL_ROWS;i++){
+    if(realGuessFor(i, activeIdx) === activeIdx){
+      const row = document.getElementById('wrow-'+i);
+      row.classList.add('win-pop');
+      setTimeout(()=>row.classList.remove('win-pop'), 500);
       break;
     }
   }
@@ -1178,17 +1211,19 @@ function submitGuess(){
   potentialScore = newPotential;
   potentialEl.classList.toggle('zero', potentialScore===0);
 
-  const toPos = (won || outOfGuesses) ? r : r + 1;
+  const toPos = won ? r + WHEEL_ROWS : (outOfGuesses ? r : r + 1);
+  const spinDuration = won ? 950 : 900;
 
-  animateTo(r, toPos, 900, () => {
+  animateTo(r, toPos, spinDuration, () => {
     revealing = false;
-    const newActiveIdx = Math.min(guesses.length, 5);
+    const newActiveIdx = won ? r : Math.min(guesses.length, 5);
     document.getElementById('guessNum').textContent = `${Math.min(guesses.length+1,6)} / 6`;
     updateMultIndicator();
     renderTiles(newActiveIdx);
 
     if(won){
-      endGame(true);
+      popActiveRow(newActiveIdx);
+      setTimeout(()=>endGame(true), 350);
     } else if(outOfGuesses){
       endGame(false);
     }
