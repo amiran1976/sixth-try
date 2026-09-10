@@ -316,157 +316,56 @@
   .scorebar .value.small{ font-size: clamp(0.85rem, 4vw, 1.1rem); }
 
 
-  .board{
-    display:flex;
-    flex-direction:column;
-    gap: clamp(2px, 0.8vw, 4px);
-    margin-bottom: 8px;
-  }
-
-  .row{
-    position: relative;
-    display:grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: clamp(4px, 1.5vw, 6px);
-    align-items:center;
-    transition: opacity 0.4s ease;
-  }
-  .row.dist-1{ opacity: 0.75; }
-  .row.dist-2{ opacity: 0.5; }
-  .row.dist-3{ opacity: 0.32; }
-  .row.dist-4{ opacity: 0.2; }
-
-  .mult-label{
-    font-family: var(--mono);
-    font-size: 0.62rem;
-    letter-spacing: 0.06em;
-    color: var(--parchment-dim);
-    margin-top: -8px;
-    margin-bottom: -2px;
-  }
-  .mult-label.dws{ color: var(--teal); }
-  .mult-label.tws{ color: var(--crimson); }
-
-  .tile{
-    position:relative;
-    aspect-ratio: 1;
-    background: var(--tile-idle);
-    border: 2px solid var(--tile-idle-border);
-    border-radius: 3px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-family: var(--serif);
-    font-size: clamp(1.05rem, 6vw, 1.5rem);
-    font-weight: 600;
-    text-transform:uppercase;
-    color: var(--parchment);
-    transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s ease, aspect-ratio 0.4s ease;
-  }
-
-  .row.dist-1 .tile{ aspect-ratio: 1.3; }
-  .row.dist-2 .tile{ aspect-ratio: 1.7; }
-  .row.dist-3 .tile{ aspect-ratio: 2.1; }
-  .row.dist-4 .tile{ aspect-ratio: 2.5; }
-
-  .row.dws{
-    box-shadow: 0 0 18px 8px rgba(63, 139, 148, 0.32);
-  }
-  .row.tws{
-    box-shadow: 0 0 18px 8px rgba(176, 71, 63, 0.32);
-  }
-
-  .tile.pop{ transform: scale(1.06); }
-  .tile.shake{ animation: shake 0.35s; }
-  @keyframes shake{
-    0%,100%{ transform: translateX(0); }
-    25%{ transform: translateX(-5px); }
-    75%{ transform: translateX(5px); }
-  }
-
-  .tile.flipping{
-    animation: tileFlip 0.58s cubic-bezier(0.45, 0, 0.2, 1);
-  }
-  @keyframes tileFlip{
-    0%{ transform: perspective(500px) rotateX(0deg); }
-    50%{ transform: perspective(500px) rotateX(90deg); }
-    100%{ transform: perspective(500px) rotateX(0deg); }
-  }
-  .tile.landed.correct{
-    animation: tileLand 0.35s ease;
-  }
-  @keyframes tileLand{
-    0%{ transform: scale(1); }
-    40%{ transform: scale(1.14); }
-    100%{ transform: scale(1); }
-  }
-
-  .score-pop{
+  .tier-label{
     position: absolute;
+    left: 4px;
+    top: 50%;
+    transform: translateY(-50%);
     font-family: var(--mono);
-    font-weight: 700;
-    font-size: clamp(1rem, 5vw, 1.5rem);
-    color: var(--gold);
-    text-shadow: 0 2px 5px rgba(0,0,0,0.7);
-    pointer-events: none;
-    z-index: 5;
-    animation: scorePop 1.4s ease-out forwards;
-    white-space: nowrap;
-  }
-  .score-pop.correct{ color: var(--correct); }
-  .score-pop.present{ color: var(--present); }
-  @keyframes scorePop{
-    0%{ opacity: 0; transform: translate(-50%,-50%) translateY(0) scale(0.6); }
-    15%{ opacity: 1; transform: translate(-50%,-50%) translateY(-8px) scale(1.35); }
-    30%{ opacity: 1; transform: translate(-50%,-50%) translateY(-16px) scale(1.15); }
-    65%{ opacity: 1; transform: translate(-50%,-50%) translateY(-32px) scale(1.1); }
-    100%{ opacity: 0; transform: translate(-50%,-50%) translateY(-52px) scale(1); }
-  }
-
-  .row-score.flash{
-    animation: rowScoreFlash 0.6s ease;
-  }
-  @keyframes rowScoreFlash{
-    0%{ transform: scale(1); }
-    35%{ transform: scale(1.18); color: var(--parchment); }
-    100%{ transform: scale(1); }
-  }
-
-  .tile .pts{
-    position:absolute;
-    bottom: 3px;
-    right: 4px;
-    font-family: var(--mono);
-    font-size: clamp(0.42rem, 2vw, 0.58rem);
-    font-weight: 400;
-    opacity: 0.8;
-  }
-
-  .tile.correct{
-    background: var(--correct-soft);
-    border-color: var(--correct);
-    color: var(--parchment);
-  }
-  .tile.present{
-    background: var(--present-soft);
-    border-color: var(--present);
-  }
-  .tile.absent{
-    background: var(--panel);
-    border-color: var(--panel-line);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
     color: var(--parchment-dim);
+    z-index: 20;
   }
+  .tier-label.dws{ color: var(--teal); }
+  .tier-label.tws{ color: var(--crimson); }
 
-  .row-score{
-    grid-column: 1 / -1;
-    text-align:right;
-    font-family: var(--mono);
-    font-size: clamp(0.56rem, 2.2vw, 0.65rem);
-    color: var(--parchment-dim);
-    min-height: 6px;
-    margin-top: -2px;
+  .stage{
+    position: relative;
+    height: 460px;
+    perspective: 900px;
+    margin: 6px 0 4px;
+    overflow: hidden;
   }
-  .row-score .amt{ color: var(--gold); }
+  .carousel{ position: absolute; top: 50%; left: 46px; right: 28px; transform-style: preserve-3d; }
+  .wslot{ position: absolute; left: 0; right: 0; top: -32px; height: 64px; transform-style: preserve-3d; transform-origin: center center; }
+  .wrow{ height: 100%; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; position: relative; }
+  .wtile{
+    position: relative;
+    border-radius: 4px; border: 2px solid var(--tile-idle-border); background: var(--tile-idle);
+    display:flex; align-items:center; justify-content:center;
+    font-family: var(--serif); font-weight: 600; font-size: clamp(1.05rem, 6vw, 1.4rem); color: var(--parchment);
+    text-transform: uppercase;
+  }
+  .wtile .pts{
+    position:absolute; bottom: 3px; right: 4px;
+    font-family: var(--mono); font-size: clamp(0.42rem, 2vw, 0.55rem); opacity: 0.8;
+  }
+  .wtile.correct{ background: var(--correct-soft); border-color: var(--correct); }
+  .wtile.present{ background: var(--present-soft); border-color: var(--present); }
+  .wtile.absent{ background: var(--panel); border-color: var(--panel-line); color: var(--parchment-dim); }
+
+  .wrow.is-active{ box-shadow: 0 0 18px 8px rgba(201, 162, 39, 0.35); background: rgba(201, 162, 39, 0.18); }
+  .wrow.is-active.tier-dws{ box-shadow: 0 0 18px 8px rgba(63, 139, 148, 0.35); background: rgba(63, 139, 148, 0.18); }
+  .wrow.is-active.tier-tws{ box-shadow: 0 0 18px 8px rgba(176, 71, 63, 0.35); background: rgba(176, 71, 63, 0.18); }
+
+  .wrow.shake{ animation: wrowShake 0.35s; }
+  @keyframes wrowShake{
+    0%,100%{ transform: translateZ(260px) translateX(0); }
+    25%{ transform: translateZ(260px) translateX(-6px); }
+    75%{ transform: translateZ(260px) translateX(6px); }
+  }
 
   .message{
     min-height: 22px;
@@ -743,7 +642,10 @@
       </div>
     </div>
 
-    <div class="board" id="board"></div>
+    <div class="stage">
+      <div class="tier-label" id="tierLabel">1&times;</div>
+      <div class="carousel" id="carousel"></div>
+    </div>
 
     <div class="message" id="message"></div>
 
@@ -903,7 +805,7 @@
       and <a href="https://github.com/hermitdave/FrequencyWords" target="_blank" rel="noopener">FrequencyWords</a> by hermitdave (CC BY-SA 4.0).
       Not affiliated with or endorsed by The New York Times Company or Wordle.
     </span>
-    <div class="build-stamp">build 22</div>
+    <div class="build-stamp">build 24</div>
   </footer>
 </div>
 
@@ -963,6 +865,22 @@ function computeMaxSolution(ans){
   return { max, turns };
 }
 
+const RADIUS = 260;
+const ANGLE_PER_ROW = 20;
+const WHEEL_ROWS = 7;
+let contentActiveIdx = 0;
+
+function realGuessFor(domIndex, activeInt){
+  const n = WHEEL_ROWS;
+  let d = (domIndex - activeInt) % n;
+  if(d > n/2) d -= n;
+  if(d < -n/2) d += n;
+  let real = activeInt + d;
+  if(real < 0) real += 6;
+  if(real > 5) real -= 6;
+  return real;
+}
+
 function newGame(){
   target = ANSWER_LIST[Math.floor(Math.random()*ANSWER_LIST.length)];
   guesses = [];
@@ -986,54 +904,123 @@ function newGame(){
   document.getElementById('potential').classList.add('zero');
   document.getElementById('maxScore').textContent = maxScore;
   document.getElementById('guessNum').textContent = "1 / 6";
-  buildBoard();
+  buildRows();
   buildKeyboard();
-  updateRowFocus();
+  layoutAt(0);
+  updateMultIndicator();
+  renderTiles(0);
 }
 
-function updateRowFocus(){
-  const active = Math.min(guesses.length, 5);
-  const tierOpacity = [1, 0.75, 0.5, 0.32, 0.2];
-  for(let i=0;i<6;i++){
-    const rowEl = document.getElementById('row-'+i);
-    if(!rowEl) continue;
-    rowEl.classList.remove('dist-1','dist-2','dist-3','dist-4');
-    const distance = Math.abs(i - active);
-    if(distance >= 1){
-      rowEl.classList.add('dist-' + Math.min(distance, 4));
-    }
-  }
-  const dwsLabel = document.querySelector('.mult-label.dws');
-  const twsLabel = document.querySelector('.mult-label.tws');
-  if(dwsLabel) dwsLabel.style.opacity = tierOpacity[Math.min(Math.abs(4-active),4)];
-  if(twsLabel) twsLabel.style.opacity = tierOpacity[Math.min(Math.abs(5-active),4)];
-}
-
-function buildBoard(){
-  const board = document.getElementById('board');
-  board.innerHTML = "";
-  for(let r=0;r<6;r++){
-    if(r===4 || r===5){
-      const label = document.createElement('div');
-      label.className = 'mult-label ' + (r===4 ? 'dws' : 'tws');
-      label.textContent = r===4 ? "2\u00d7 WORD SCORE" : "3\u00d7 WORD SCORE";
-      board.appendChild(label);
-    }
-
+function buildRows(){
+  const carousel = document.getElementById('carousel');
+  carousel.innerHTML = "";
+  carousel.style.transform = `translateZ(-${RADIUS}px)`;
+  for(let i=0;i<WHEEL_ROWS;i++){
+    const slot = document.createElement('div');
+    slot.className = 'wslot';
+    slot.id = 'wslot-'+i;
     const row = document.createElement('div');
-    row.className = 'row' + (r===4 ? ' dws' : (r===5 ? ' tws' : ''));
-    row.id = 'row-'+r;
+    row.className = 'wrow';
+    row.id = 'wrow-'+i;
     for(let c=0;c<5;c++){
       const tile = document.createElement('div');
-      tile.className = 'tile';
-      tile.id = `tile-${r}-${c}`;
+      tile.className = 'wtile';
+      tile.id = `wtile-${i}-${c}`;
       row.appendChild(tile);
     }
-    const rowScore = document.createElement('div');
-    rowScore.className = 'row-score';
-    rowScore.id = 'rowscore-'+r;
-    board.appendChild(row);
-    board.appendChild(rowScore);
+    slot.appendChild(row);
+    carousel.appendChild(slot);
+  }
+}
+
+function layoutAt(rawPos){
+  const n = WHEEL_ROWS;
+  const pos = ((rawPos % n) + n) % n;
+  const nearestIndex = Math.round(pos) % n;
+  for(let i=0;i<n;i++){
+    const slot = document.getElementById('wslot-'+i);
+    const row = document.getElementById('wrow-'+i);
+    let d = (i - pos) % n;
+    if(d > n/2) d -= n;
+    if(d < -n/2) d += n;
+    const absD = Math.abs(d);
+    const rotSign = d < 0 ? 1 : (d > 0 ? -1 : 0);
+    const angle = absD * ANGLE_PER_ROW;
+    const opacity = Math.max(0.05, 1 - absD * 0.22);
+
+    slot.style.transform = `rotateX(${rotSign * angle}deg) translateZ(${RADIUS}px)`;
+    row.style.opacity = opacity;
+    const isActive = i === nearestIndex;
+    row.classList.toggle('is-active', isActive);
+    const realGuess = realGuessFor(i, contentActiveIdx);
+    row.classList.toggle('tier-dws', isActive && realGuess === 4);
+    row.classList.toggle('tier-tws', isActive && realGuess === 5);
+    slot.style.zIndex = Math.round(100 - absD);
+  }
+}
+
+function animateTo(fromPos, toPos, duration, onDone){
+  const startTime = performance.now();
+  function frame(now){
+    const t = Math.min(1, (now - startTime) / duration);
+    const eased = 1 - Math.pow(1 - t, 4);
+    layoutAt(fromPos + (toPos - fromPos) * eased);
+    if(t < 1) requestAnimationFrame(frame);
+    else if(onDone) onDone();
+  }
+  requestAnimationFrame(frame);
+}
+
+function updateMultIndicator(){
+  const el = document.getElementById('tierLabel');
+  el.classList.remove('dws','tws');
+  const idx = Math.min(guesses.length, 5);
+  if(idx===4){ el.textContent = '2\u00d7'; el.classList.add('dws'); }
+  else if(idx===5){ el.textContent = '3\u00d7'; el.classList.add('tws'); }
+  else { el.textContent = '1\u00d7'; }
+}
+
+function renderTiles(activeIdx){
+  contentActiveIdx = activeIdx;
+  for(let i=0;i<WHEEL_ROWS;i++){
+    const realGuess = realGuessFor(i, activeIdx);
+    const isActiveSlot = realGuess === activeIdx;
+    const submittedWord = guesses[realGuess];
+    const guessText = submittedWord || (isActiveSlot ? currentGuess : '');
+    const statuses = submittedWord ? statusHistory[realGuess] : null;
+    for(let c=0;c<5;c++){
+      const tile = document.getElementById(`wtile-${i}-${c}`);
+      if(!tile) continue;
+      const letter = guessText ? guessText[c] : '';
+      tile.className = 'wtile';
+      tile.innerHTML = '';
+      if(letter){
+        const span = document.createElement('span');
+        span.textContent = letter;
+        tile.appendChild(span);
+        if(statuses){
+          const status = statuses[c];
+          tile.classList.add(status);
+          const ptsEl = document.createElement('div');
+          ptsEl.className = 'pts';
+          const val = LETTER_VALUES[letter.toUpperCase()] || 0;
+          ptsEl.textContent = status==='correct' ? `${val}\u00d72` : (status==='present' ? val : '');
+          tile.appendChild(ptsEl);
+        }
+      }
+    }
+  }
+}
+
+function shakeActiveRow(){
+  const activeIdx = Math.min(guesses.length, 5);
+  for(let i=0;i<WHEEL_ROWS;i++){
+    if(realGuessFor(i, activeIdx) === activeIdx){
+      const row = document.getElementById('wrow-'+i);
+      row.classList.add('shake');
+      setTimeout(()=>row.classList.remove('shake'), 350);
+      break;
+    }
   }
 }
 
@@ -1080,33 +1067,17 @@ function buildKeyboard(){
 function typeLetter(l){
   if(gameOver || revealing || currentGuess.length>=5) return;
   currentGuess += l;
-  renderCurrentGuess();
+  renderTiles(Math.min(guesses.length,5));
 }
 
 function deleteLetter(){
   if(gameOver || revealing) return;
   currentGuess = currentGuess.slice(0,-1);
-  renderCurrentGuess();
-}
-
-function renderCurrentGuess(){
-  const r = guesses.length;
-  for(let c=0;c<5;c++){
-    const tile = document.getElementById(`tile-${r}-${c}`);
-    tile.textContent = currentGuess[c] || "";
-  }
+  renderTiles(Math.min(guesses.length,5));
 }
 
 function setMessage(msg){
   document.getElementById('message').textContent = msg;
-}
-
-function shakeRow(r){
-  for(let c=0;c<5;c++){
-    const tile = document.getElementById(`tile-${r}-${c}`);
-    tile.classList.add('shake');
-    setTimeout(()=>tile.classList.remove('shake'), 350);
-  }
 }
 
 function evaluateGuess(guess, ans){
@@ -1153,18 +1124,18 @@ function submitGuess(){
   if(gameOver || revealing) return;
   if(currentGuess.length!==5){
     setMessage("needs 5 letters");
-    shakeRow(guesses.length);
+    shakeActiveRow();
     return;
   }
   const lower = currentGuess.toLowerCase();
   if(!GUESS_SET.has(lower)){
     setMessage("not in word list");
-    shakeRow(guesses.length);
+    shakeActiveRow();
     return;
   }
   if(guesses.includes(currentGuess)){
     setMessage("already tried that one");
-    shakeRow(guesses.length);
+    shakeActiveRow();
     return;
   }
   setMessage("");
@@ -1173,20 +1144,22 @@ function submitGuess(){
   const guessWord = currentGuess;
   const statuses = evaluateGuess(guessWord, target);
 
-  const tilePts = [];
   let rowScore = 0;
   for(let c=0;c<5;c++){
     const val = LETTER_VALUES[guessWord[c]] || 0;
     const status = statuses[c];
-    const pts = status==='correct' ? val*2 : (status==='present' ? val : 0);
-    tilePts.push(pts);
-    rowScore += pts;
+    rowScore += status==='correct' ? val*2 : (status==='present' ? val : 0);
+    const key = document.getElementById('key-'+guessWord[c]);
+    if(key){
+      if(status==='correct') key.className='key correct';
+      else if(status==='present' && !key.classList.contains('correct')) key.className='key present';
+      else if(status==='absent' && !key.classList.contains('correct') && !key.classList.contains('present')) key.className='key absent';
+    }
   }
 
-  let multLabel = "";
   let multiplied = rowScore;
-  if(r===4){ multiplied = rowScore*2; multLabel = " (2\u00d7 word)"; }
-  if(r===5){ multiplied = rowScore*3; multLabel = " (3\u00d7 word)"; }
+  if(r===4) multiplied = rowScore*2;
+  if(r===5) multiplied = rowScore*3;
 
   const won = lower === target;
   guesses.push(guessWord);
@@ -1198,79 +1171,28 @@ function submitGuess(){
   currentGuess = "";
   revealing = true;
 
-  const STAGGER = 260;
-  const FLIP_HALF = 290;
-  const FLIP_TOTAL = 580;
+  renderTiles(r);
 
-  for(let c=0;c<5;c++){
-    const delay = c*STAGGER;
-    const tile = document.getElementById(`tile-${r}-${c}`);
-    const letter = guessWord[c];
-    const status = statuses[c];
-    const pts = tilePts[c];
+  const potentialEl = document.getElementById('potential');
+  animateCountUp(potentialEl, oldPotential, newPotential, 500);
+  potentialScore = newPotential;
+  potentialEl.classList.toggle('zero', potentialScore===0);
 
-    setTimeout(()=>{ tile.classList.add('flipping'); }, delay);
+  const toPos = (won || outOfGuesses) ? r : r + 1;
 
-    setTimeout(()=>{
-      tile.classList.add(status);
-
-      const ptsEl = document.createElement('div');
-      ptsEl.className = 'pts';
-      if(status==='correct') ptsEl.textContent = `${LETTER_VALUES[letter]||0}\u00d72`;
-      else if(status==='present') ptsEl.textContent = LETTER_VALUES[letter]||0;
-      tile.appendChild(ptsEl);
-
-      if(pts>0){
-        const pop = document.createElement('div');
-        pop.className = 'score-pop' + (status==='correct' ? ' correct' : (status==='present' ? ' present' : ''));
-        pop.textContent = '+'+pts;
-        const rowEl = tile.parentElement;
-        const tileRect = tile.getBoundingClientRect();
-        const rowRect = rowEl.getBoundingClientRect();
-        pop.style.left = (tileRect.left - rowRect.left + tileRect.width/2) + 'px';
-        pop.style.top = (tileRect.top - rowRect.top + tileRect.height/2) + 'px';
-        rowEl.appendChild(pop);
-        setTimeout(()=>pop.remove(), 1400);
-      }
-
-      if(status==='correct'){
-        tile.classList.add('landed');
-        setTimeout(()=>tile.classList.remove('landed'), 400);
-      }
-
-      const key = document.getElementById('key-'+letter);
-      if(key){
-        if(status==='correct') key.className='key correct';
-        else if(status==='present' && !key.classList.contains('correct')) key.className='key present';
-        else if(status==='absent' && !key.classList.contains('correct') && !key.classList.contains('present')) key.className='key absent';
-      }
-    }, delay + FLIP_HALF);
-
-    setTimeout(()=>{ tile.classList.remove('flipping'); }, delay + FLIP_TOTAL);
-  }
-
-  const totalRevealTime = (4*STAGGER) + FLIP_TOTAL;
-
-  setTimeout(()=>{
-    const rowScoreEl = document.getElementById('rowscore-'+r);
-    rowScoreEl.innerHTML = multiplied>0 ? `+<span class="amt">${multiplied}</span>${multLabel}` : `&mdash;`;
-    if(multLabel) rowScoreEl.classList.add('flash');
-
-    const potentialEl = document.getElementById('potential');
-    animateCountUp(potentialEl, oldPotential, newPotential, 500);
-    potentialScore = newPotential;
-    potentialEl.classList.toggle('zero', potentialScore===0);
-    document.getElementById('guessNum').textContent = `${Math.min(guesses.length+1,6)} / 6`;
-    updateRowFocus();
-
+  animateTo(r, toPos, 900, () => {
     revealing = false;
+    const newActiveIdx = Math.min(guesses.length, 5);
+    document.getElementById('guessNum').textContent = `${Math.min(guesses.length+1,6)} / 6`;
+    updateMultIndicator();
+    renderTiles(newActiveIdx);
 
     if(won){
       endGame(true);
     } else if(outOfGuesses){
       endGame(false);
     }
-  }, totalRevealTime + 80);
+  });
 }
 
 const TIERS = [
