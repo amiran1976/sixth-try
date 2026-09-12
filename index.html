@@ -337,7 +337,10 @@
     perspective: 900px;
     margin: 6px 0 4px;
     overflow: hidden;
+    touch-action: none;
+    cursor: grab;
   }
+  .stage.grabbing{ cursor: grabbing; }
   .carousel{ position: absolute; top: 50%; left: 46px; right: 28px; transform-style: preserve-3d; }
   .wslot{ position: absolute; left: 0; right: 0; top: -32px; height: 64px; transform-style: preserve-3d; transform-origin: center center; }
   .wrow{ height: 100%; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; position: relative; }
@@ -650,7 +653,7 @@
       </div>
     </div>
 
-    <div class="stage">
+    <div class="stage" id="stage">
       <div class="tier-label" id="tierLabel">1&times;</div>
       <div class="carousel" id="carousel"></div>
     </div>
@@ -813,7 +816,7 @@
       and <a href="https://github.com/hermitdave/FrequencyWords" target="_blank" rel="noopener">FrequencyWords</a> by hermitdave (CC BY-SA 4.0).
       Not affiliated with or endorsed by The New York Times Company or Wordle.
     </span>
-    <div class="build-stamp">build 39 (reverted to pre-clipping-chase state)</div>
+    <div class="build-stamp">build 45</div>
   </footer>
 </div>
 
@@ -992,6 +995,72 @@ function animateTo(fromPos, toPos, duration, onDone){
   }
   requestAnimationFrame(frame);
 }
+
+let fidgetPos = null;
+let fidgetVelocity = 0;
+let fidgetDrag = null;
+let fidgetMomentumId = null;
+const FIDGET_SENSITIVITY = 90;
+const FIDGET_FRICTION = 0.965;
+const FIDGET_STOP_THRESHOLD = 0.0015;
+
+function currentGameActiveIdx(){
+  return Math.min(guesses.length, 5);
+}
+
+function onStagePointerDown(e){
+  if(revealing && fidgetPos === null) return;
+  if(fidgetMomentumId){ cancelAnimationFrame(fidgetMomentumId); fidgetMomentumId = null; }
+  if(fidgetPos === null) fidgetPos = currentGameActiveIdx();
+  revealing = true;
+  fidgetDrag = { startY: e.clientY, lastY: e.clientY, lastTime: performance.now(), startPos: fidgetPos };
+  fidgetVelocity = 0;
+  document.getElementById('stage').classList.add('grabbing');
+  try{ document.getElementById('stage').setPointerCapture(e.pointerId); }catch(err){}
+}
+
+function onStagePointerMove(e){
+  if(!fidgetDrag) return;
+  const dy = e.clientY - fidgetDrag.startY;
+  const newPos = fidgetDrag.startPos - (dy / FIDGET_SENSITIVITY);
+  const now = performance.now();
+  const dt = now - fidgetDrag.lastTime;
+  if(dt > 0){
+    fidgetVelocity = (newPos - fidgetPos) / dt * 16;
+  }
+  fidgetPos = newPos;
+  fidgetDrag.lastY = e.clientY;
+  fidgetDrag.lastTime = now;
+  layoutAt(fidgetPos);
+}
+
+function onStagePointerUp(){
+  if(!fidgetDrag) return;
+  fidgetDrag = null;
+  document.getElementById('stage').classList.remove('grabbing');
+  fidgetMomentumLoop();
+}
+
+function fidgetMomentumLoop(){
+  function frame(){
+    fidgetVelocity *= FIDGET_FRICTION;
+    fidgetPos += fidgetVelocity;
+    layoutAt(fidgetPos);
+    if(Math.abs(fidgetVelocity) > FIDGET_STOP_THRESHOLD){
+      fidgetMomentumId = requestAnimationFrame(frame);
+    } else {
+      fidgetMomentumId = null;
+      revealing = false;
+    }
+  }
+  fidgetMomentumId = requestAnimationFrame(frame);
+}
+
+const stageEl = document.getElementById('stage');
+stageEl.addEventListener('pointerdown', onStagePointerDown);
+stageEl.addEventListener('pointermove', onStagePointerMove);
+stageEl.addEventListener('pointerup', onStagePointerUp);
+stageEl.addEventListener('pointercancel', onStagePointerUp);
 
 function updateMultIndicator(){
   const el = document.getElementById('tierLabel');
