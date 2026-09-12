@@ -632,6 +632,7 @@
     <div class="header-actions">
       <button class="howto-btn" id="howtoBtn"><span class="qmark">?</span> How to play</button>
       <button class="howto-btn" id="viewResultBtn" style="display:none;">View result</button>
+      <button class="howto-btn" id="muteBtn">&#128266;</button>
     </div>
   </header>
 
@@ -816,7 +817,7 @@
       and <a href="https://github.com/hermitdave/FrequencyWords" target="_blank" rel="noopener">FrequencyWords</a> by hermitdave (CC BY-SA 4.0).
       Not affiliated with or endorsed by The New York Times Company or Wordle.
     </span>
-    <div class="build-stamp">build 45</div>
+    <div class="build-stamp">build 51 (tick reverb)</div>
   </footer>
 </div>
 
@@ -838,6 +839,128 @@ const ANSWER_LIST = ANSWERS_RAW.split(" ");
 const GUESS_SET = new Set(GUESSES_RAW.split(" ").concat(ANSWER_LIST));
 
 let target, guesses, currentGuess, gameOver, potentialScore, maxScore, statusHistory, wonFlag, perfectSolution, revealing;
+
+let audioCtx = null;
+let soundMuted = false;
+try{ soundMuted = localStorage.getItem('sixward-muted') === 'true'; }catch(e){}
+
+function getAudioCtx(){
+  if(!audioCtx){
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if(audioCtx.state === 'suspended'){ audioCtx.resume(); }
+  return audioCtx;
+}
+
+function playTone(freq, duration, type, volume, delay){
+  if(soundMuted) return;
+  try{
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.value = freq;
+    const startTime = ctx.currentTime + (delay || 0);
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(volume, startTime + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(startTime);
+    osc.stop(startTime + duration + 0.02);
+  }catch(e){}
+}
+
+let reverbImpulseBuffer = null;
+function getReverbImpulse(ctx){
+  if(!reverbImpulseBuffer){
+    const duration = 0.3, decay = 3;
+    const length = Math.floor(ctx.sampleRate * duration);
+    reverbImpulseBuffer = ctx.createBuffer(2, length, ctx.sampleRate);
+    for(let channel=0; channel<2; channel++){
+      const data = reverbImpulseBuffer.getChannelData(channel);
+      for(let i=0;i<length;i++){
+        data[i] = (Math.random()*2-1) * Math.pow(1 - i/length, decay);
+      }
+    }
+  }
+  return reverbImpulseBuffer;
+}
+
+function playTick(){
+  if(soundMuted) return;
+  try{
+    const ctx = getAudioCtx();
+    const duration = 0.006;
+    const bufferSize = Math.floor(ctx.sampleRate * duration);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<bufferSize;i++){
+      data[i] = (Math.random()*2-1) * Math.pow(1 - i/bufferSize, 4);
+    }
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 750;
+    filter.Q.value = 1.5;
+
+    const dryGain = ctx.createGain();
+    dryGain.gain.value = 0.7;
+
+    const convolver = ctx.createConvolver();
+    convolver.buffer = getReverbImpulse(ctx);
+    const wetGain = ctx.createGain();
+    wetGain.gain.value = 0.22;
+
+    source.connect(filter);
+    filter.connect(dryGain);
+    dryGain.connect(ctx.destination);
+    filter.connect(convolver);
+    convolver.connect(wetGain);
+    wetGain.connect(ctx.destination);
+    source.start();
+  }catch(e){}
+}
+
+const CORRECT_NOTES = [523.25, 587.33, 659.25, 783.99, 880.00]; // C5 D5 E5 G5 A5, major pentatonic
+function playRevealSounds(statuses){
+  const STAGGER = 0.07;
+  statuses.forEach((status, i) => {
+    const delay = i * STAGGER;
+    if(status === 'correct'){
+      playTone(CORRECT_NOTES[i], 0.18, 'sine', 0.14, delay);
+    } else if(status === 'present'){
+      playTone(330, 0.12, 'triangle', 0.07, delay);
+    }
+  });
+}
+
+function playWinFanfare(){
+  const notes = [523.25, 659.25, 783.99, 1046.50]; // C5 E5 G5 C6
+  notes.forEach((freq, i) => playTone(freq, 0.28, 'sine', 0.16, i * 0.1));
+}
+
+function playLossTone(){
+  playTone(392.00, 0.3, 'sine', 0.09, 0);
+  playTone(329.63, 0.4, 'sine', 0.09, 0.15);
+}
+
+function playErrorBlip(){
+  playTone(180, 0.15, 'sawtooth', 0.07, 0);
+}
+
+function toggleMute(){
+  soundMuted = !soundMuted;
+  try{ localStorage.setItem('sixward-muted', soundMuted); }catch(e){}
+  updateMuteButton();
+}
+
+function updateMuteButton(){
+  const btn = document.getElementById('muteBtn');
+  if(btn) btn.innerHTML = soundMuted ? '&#128263;' : '&#128266;';
+}
 
 function wordScore(word, ans){
   // returns total points scoring `word` against answer `ans`, base multiplier (no word multiplier applied)
@@ -958,10 +1081,16 @@ function buildRows(){
   }
 }
 
+let lastTickIndex = null;
+
 function layoutAt(rawPos){
   const n = WHEEL_ROWS;
   const pos = ((rawPos % n) + n) % n;
   const nearestIndex = Math.round(pos) % n;
+  if(lastTickIndex !== null && nearestIndex !== lastTickIndex){
+    playTick();
+  }
+  lastTickIndex = nearestIndex;
   for(let i=0;i<n;i++){
     const slot = document.getElementById('wslot-'+i);
     const row = document.getElementById('wrow-'+i);
@@ -1227,17 +1356,20 @@ function submitGuess(){
   if(currentGuess.length!==5){
     setMessage("needs 5 letters");
     shakeActiveRow();
+    playErrorBlip();
     return;
   }
   const lower = currentGuess.toLowerCase();
   if(!GUESS_SET.has(lower)){
     setMessage("not in word list");
     shakeActiveRow();
+    playErrorBlip();
     return;
   }
   if(guesses.includes(currentGuess)){
     setMessage("already tried that one");
     shakeActiveRow();
+    playErrorBlip();
     return;
   }
   setMessage("");
@@ -1274,6 +1406,7 @@ function submitGuess(){
   revealing = true;
 
   renderTiles(r);
+  playRevealSounds(statuses);
 
   const potentialEl = document.getElementById('potential');
   animateCountUp(potentialEl, oldPotential, newPotential, 500);
@@ -1492,6 +1625,7 @@ function endGame(won){
   recordResult(won, pct);
 
   if(won){
+    playWinFanfare();
     const tier = getTier(pct);
     tierEl.textContent = tier.emoji;
     headline.classList.add('win');
@@ -1499,6 +1633,7 @@ function endGame(won){
     detail.textContent = `${potentialScore} of ${maxScore} possible points (${pct}%) \u2014 ${target.toUpperCase()} in ${guesses.length}/6` +
       (guesses.length<6 ? `. You could've stalled longer for more.` : `. Nailed it on the last try.`);
   } else {
+    playLossTone();
     tierEl.textContent = "\ud83d\ude22";
     headline.classList.add('lose');
     headline.textContent = `Out of guesses \u2014 0 points`;
@@ -1525,6 +1660,7 @@ function closeHowTo(){
 }
 
 document.getElementById('howtoBtn').addEventListener('click', openHowTo);
+document.getElementById('muteBtn').addEventListener('click', toggleMute);
 document.getElementById('howtoClose').addEventListener('click', closeHowTo);
 document.getElementById('howtoGotIt').addEventListener('click', closeHowTo);
 document.getElementById('howtoOverlay').addEventListener('click', (e)=>{
@@ -1583,6 +1719,7 @@ function initBackground(){
   }
 }
 
+updateMuteButton();
 initBackground();
 renderStreakBar(loadStats());
 document.getElementById('loading').style.display = 'none';
